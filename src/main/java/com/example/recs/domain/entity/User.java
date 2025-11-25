@@ -17,4 +17,5 @@ import lombok.NoArgsConstructor;
 public class User {
     @Id
     private Long id;
+    private String userName;
 }

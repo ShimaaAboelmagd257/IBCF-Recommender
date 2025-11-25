@@ -1,128 +1,109 @@
 package com.example.recs.service;
 
-import com.example.recs.domain.dto.Movie;
+import com.example.recs.domain.entity.MovieSimilarity;
 import com.example.recs.domain.entity.Rating;
-import com.example.recs.repository.MovieRepository;
+import com.example.recs.repository.MovieSimRepository;
 import com.example.recs.repository.RatingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class IBCFServiceImpl implements IBCFService{
+public class IBCFServiceImpl {
 
 
+    private static final int MIN_COMMON_USERS = 1;
     private final RatingRepository ratingRepository;
+    private final MovieSimRepository simRepository;
+    private final TmdbService tmdbService;
+
     private static final Logger log = LoggerFactory.getLogger(IBCFServiceImpl.class);
 
-    @Override
-    public List<Movie> recommendationForUser(Long userId){
-        log.info("Recs Starting recommendation process for userId"+userId);
-        var allRatings = ratingRepository.findAll();
-        var userRatings = ratingRepository.findByIdUserId(userId);
+    @Transactional
+    public void computeSim(Long movieAId){
+        log.info("Computing similarities for movieA={}", movieAId);
 
-        var itemUserMatrix = buildItemUserMatrix(allRatings);
-        log.info("Recs itemUserMatrix "+ itemUserMatrix.size());
-        var similarityMatrix = computeSimilarityMatrix(itemUserMatrix);
-        log.info("Recs similarityMatrix "+ similarityMatrix.size());
-        var predictions = predictScores(userRatings,itemUserMatrix,similarityMatrix);
-        log.info("Recs predictions "+ predictions.size());
-
-     return predictions.entrySet().stream()
-             .sorted(Map.Entry.<Long,Double> comparingByValue().reversed()).limit(20)
-             .map(entry -> {
-                // Movie movie = movieRepository.findById(entry.getKey()).orElse(null);
-                 Movie movie = new Movie();
-                 movie.setId(entry.getKey().intValue());
-                 movie.setTitle("Mock Movie " + entry.getKey());
-                 log.info("Predicted Mock Movie ID: {}, Score: {}", entry.getKey(), entry.getValue());
-                 /*if(movie == null) {
-                     log.warn("Movie id {} not found in database" + entry.getKey());
-                     return null;
-                 }*/
-                 movie.setPredictRating(entry.getValue());
-                 log.info("Final  movies Recs : "+ movie.getTitle());
-                 return movie;
-             })
-             .filter(Objects::nonNull)
-             .toList();
-    }
-
-    private Map<Long,Map<Long,Double>> buildItemUserMatrix(List<Rating> allRatings){
-        Map<Long,Map<Long,Double>> matrix = new HashMap<>();
-        for (Rating rating:allRatings){
-            matrix.computeIfAbsent(rating.getId().getMovieId(), k-> new HashMap<>())
-                    .put(rating.getId().getUserId(), rating.getRating());
+        if (!tmdbService.exists(movieAId)){
+            log.warn("Computing similarities for movieA={} don't exist",movieAId);
+            return;
         }
-        return matrix;
-    }
 
-    private Map<Long,Map<Long,Double>> computeSimilarityMatrix(Map<Long,Map<Long,Double>> itemUserMatrix){        Map<Long, Map<Long, Double>> simMatrix = new HashMap<>();
-
-                for (Long a : itemUserMatrix.keySet()) {
-                    for (Long b : itemUserMatrix.keySet()) {
-                        if (a >= b) continue;
-                        if (!haveCommonUser(itemUserMatrix.get(a), itemUserMatrix.get(b))) continue;
-                        double sim = cosineSimilarity(itemUserMatrix.get(a), itemUserMatrix.get(b));
-                        if (sim != 0) {
-                            simMatrix.computeIfAbsent(a, k -> new HashMap<>()).put(b, sim);
-                            simMatrix.computeIfAbsent(b, k -> new HashMap<>()).put(a, sim);
-                        }
-                    }
-                }
-                return simMatrix;
-    }
-    private boolean haveCommonUser(Map<Long, Double> a, Map<Long, Double> b) {
-        for (Long userId : a.keySet()) {
-            if (b.containsKey(userId)) return true;
+        List<Rating> ratingsMovieA = ratingRepository.findByIdMovieId(movieAId);
+        if (ratingsMovieA.isEmpty()) {
+            log.warn("Movie {} has no ratings. Skipping similarity computation.", movieAId);
+            return;
         }
-        return false;
-    }
-    private Map<Long, Double> predictScores(
-            List<Rating> userRatings,
-            Map<Long, Map<Long, Double>> itemUserMatrix,
-            Map<Long, Map<Long, Double>> similarityMatrix) {
+
+        Map<Long, Double> ratingMovieAMap = new HashMap<>();
+        List<Long> usersRatedMovieA = new ArrayList<>();
+
+        for (Rating r : ratingsMovieA){
+            ratingMovieAMap.put(r.getId().getUserId(), r.getRating());
+            usersRatedMovieA.add(r.getId().getUserId());
+        }
+
+        log.debug("MovieA ratings count = {}, users = {}", ratingMovieAMap.size(), usersRatedMovieA);
+        List<Rating> otherRatings = ratingRepository.findByIdUserIdIn(usersRatedMovieA);
+        Map<Long , Map<Long,Double>>  movieBUserRatingMap = new HashMap<>();
+        for (Rating r:otherRatings){
+            Long movieBId = r.getId().getMovieId();
+            Long userId = r.getId().getUserId();
+            if (movieBId.equals(movieAId)) continue;
+            movieBUserRatingMap.computeIfAbsent(movieBId,x->new HashMap<>())
+                    .put(userId,r.getRating());
+        }
+        log.info("Found {} candidate movies to compare with movieA={}", movieBUserRatingMap.size(), movieAId);
+
+        simRepository.deleteByMovieX(movieAId);
 
 
-        Set<Long> seen = userRatings.stream()
-                .map(r -> r.getId().getMovieId())
-                .collect(Collectors.toSet());
+        for (Map.Entry<Long,Map<Long,Double>> entry:movieBUserRatingMap.entrySet()){
+            Long movieBId = entry.getKey();
+            Map<Long,Double> movieBRatingMap = entry.getValue();
 
-        Map<Long, Double> predictions = new HashMap<>();
 
-        for (Long movie : itemUserMatrix.keySet()) {
-            if (seen.contains(movie)) continue;
-
-            double numerator = 0, denominator = 0;
-            for (Rating r : userRatings) {
-                double sim = similarityMatrix
-                        .getOrDefault(movie, Map.of())
-                        .getOrDefault(r.getId().getMovieId(), 0.0);
-                if (sim > 0) {
-                    numerator += sim * r.getRating();
-                    denominator += sim;
-                }
+            Set<Long> commonUsers = new HashSet<>(ratingMovieAMap.keySet());
+            log.debug("Comparing A={} with B={}, commonUsers={}", movieAId, movieBId, commonUsers.size());
+            commonUsers.retainAll(movieBRatingMap.keySet());
+            if (commonUsers.size() < MIN_COMMON_USERS) {
+                log.warn("Computing similarities for movieA={} skipping because MIN_COMMON_USERS{}",commonUsers.size());
+                continue;
             }
-            if (denominator > 0)
-                predictions.put(movie, numerator / denominator);
-        }
-        return predictions;
-    }
 
-    private double cosineSimilarity(Map<Long, Double> a, Map<Long, Double> b) {
-        double dot = 0, normA = 0, normB = 0;
-        for (Long user : a.keySet()) {
-            double ra = a.get(user);
-            normA += ra * ra;
-            if (b.containsKey(user)) dot += ra * b.get(user);
+            double sim = cosine(ratingMovieAMap,movieBRatingMap,commonUsers);
+            log.info("Similarity computed: A={}, B={}, sim={}", movieAId, movieBId, sim);
+            if (Double.isFinite(sim)){
+                simRepository.save(MovieSimilarity.builder().movieX(movieAId).movieY(movieBId).sim(sim).build());
+            }
+
         }
-        for (double rb : b.values()) normB += rb * rb;
+
+
+
+
+
+
+
+    }
+    private double cosine(Map<Long, Double> a, Map<Long, Double> b, Set<Long> users) {
+        double dot = 0, normA = 0, normB = 0;
+
+        for (Long u : users) {
+            double ra = a.get(u);
+            double rb = b.get(u);
+
+            dot += ra * rb;
+            normA += ra * ra;
+            normB += rb * rb;
+        }
+
         if (normA == 0 || normB == 0) return 0;
+
         return dot / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 

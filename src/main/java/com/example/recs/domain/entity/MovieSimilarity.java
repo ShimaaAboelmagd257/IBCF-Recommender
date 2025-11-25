@@ -1,22 +1,23 @@
 package com.example.recs.domain.entity;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Table(name = "movies")
+@Table(name = "movies_similarity")
 @Entity
-public class MovieEntity {
-    @Id
-    private Long movieId;
-    private String title;
-    private Double tmdbRating;
-}
 
+public class MovieSimilarity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long primaryKey;
+    private Long movieX;
+    private Long movieY;
+    private Double sim;
+}

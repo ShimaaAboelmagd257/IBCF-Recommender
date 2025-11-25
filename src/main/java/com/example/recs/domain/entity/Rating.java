@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
+import java.time.Instant;
 
 @Data
 @AllArgsConstructor
@@ -16,7 +17,8 @@ public class Rating {
     @EmbeddedId
     private RatingId id;
 
-    private double rating;
+    private Double rating;
+   // private Instant created = Instant.now();
 
     @Embeddable
     @Data
