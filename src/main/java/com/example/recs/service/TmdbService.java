@@ -10,5 +10,5 @@ public interface TmdbService {
     TmdbGenreResponse getGenres();
     TmdbMoviesResponse getMoviesByGenre(int genreId);
     MovieDetailsResponse getMovieDetails(int movieId );
-    boolean exists(Long movieId);
+    boolean exists(Integer movieId);
 }

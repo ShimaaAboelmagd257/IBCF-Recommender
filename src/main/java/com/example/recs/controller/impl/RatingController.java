@@ -23,6 +23,11 @@ public class RatingController {
         return ResponseEntity.ok(ratingService.saveRating(ratingDto));
 
     }
+    @PostMapping("/submit-all")
+    public ResponseEntity<List<RatingDto>> submitRatings(@RequestBody List<RatingDto> ratingDto){
+        return ResponseEntity.ok(ratingService.saveRatings(ratingDto));
+
+    }
     @GetMapping
     public ResponseEntity<List<Rating>> getALLRatings(){
         return ResponseEntity.ok(ratingService.getAllRatings());

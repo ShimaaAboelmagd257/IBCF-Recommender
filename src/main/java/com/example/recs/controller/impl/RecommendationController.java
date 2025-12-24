@@ -3,6 +3,7 @@ package com.example.recs.controller.impl;
 
 import com.example.recs.domain.dto.Movie;
 import com.example.recs.domain.dto.MovieDetailsResponse;
+import com.example.recs.domain.dto.MovieDto;
 import com.example.recs.service.ContentBasedService;
 import com.example.recs.service.RecommendationsService;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +26,11 @@ public class RecommendationController {
         return ResponseEntity.ok(movieRecs);
     }
     @GetMapping("/{userId}")
-    public ResponseEntity<List<MovieDetailsResponse>> getRecommendationsForUser(
+    public ResponseEntity<List<MovieDto>> getRecommendationsForUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "10") int limit
     ){
-        List<MovieDetailsResponse> recommendation = recommendationsService.recommendationForUser(userId,limit);
+        List<MovieDto> recommendation = recommendationsService.recommendationForUser(userId,limit);
         return ResponseEntity.ok(recommendation);
     }
 }

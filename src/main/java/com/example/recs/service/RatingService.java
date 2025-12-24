@@ -9,4 +9,5 @@ public interface RatingService {
     RatingDto saveRating(RatingDto ratingDto);
     List<RatingDto> getRatingsByUser(Long userId);
     List<Rating> getAllRatings();
+    List<RatingDto> saveRatings(List<RatingDto> ratingDtos);
 }

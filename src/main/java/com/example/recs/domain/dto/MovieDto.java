@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 
 @Data
 @Builder
@@ -14,11 +13,6 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class MovieDto {
     @Id
-    private Long movieId;
+    private Integer movieId;
     private String title;
-    private String genres;
-    private String tmdbId;         // from TMDb
-    private String overview;
-    private String posterUrl;
-    private LocalDate releaseDate;
 }

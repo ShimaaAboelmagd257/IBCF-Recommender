@@ -1,4 +1,7 @@
 package com.example.recs.domain.dto;
 
-public class RecsResponse {
-}
+public record RecsResponse (
+        Long movieId,
+        String title,
+        double score
+){}

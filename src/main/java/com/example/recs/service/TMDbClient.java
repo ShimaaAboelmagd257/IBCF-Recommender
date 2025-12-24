@@ -74,8 +74,11 @@ public class TMDbClient implements TmdbService {
            return null;
        }
     }
+
+
+
     @Override
-    public boolean exists(Long movieId) {
+    public boolean exists(Integer movieId) {
         String url = BASE_URL + "/movie/" + movieId;
         try {
             restTemplate.exchange(url,HttpMethod.GET,buildEntity(),String.class);

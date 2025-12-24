@@ -9,8 +9,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 @AutoConfigureMockMvc
 public class IBCFServiceTest {
 
-    @Autowired
-    private IBCFService ibcfService;
 
     @Autowired
     private RatingRepository ratingRepository;

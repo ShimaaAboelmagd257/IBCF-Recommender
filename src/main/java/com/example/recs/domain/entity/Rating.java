@@ -27,7 +27,7 @@ public class Rating {
     @EqualsAndHashCode
     public static class RatingId implements Serializable {
         private Long userId;
-        private Long movieId;
+        private Integer movieId;
     }
 }
 

@@ -1,11 +1,8 @@
 package com.example.recs.service;
 
-import com.example.recs.domain.dto.MovieDto;
 import com.example.recs.domain.dto.RatingDto;
-import com.example.recs.domain.entity.MovieSimilarity;
 import com.example.recs.domain.entity.Rating;
 import com.example.recs.mappers.RatingsMapperImpl;
-import com.example.recs.repository.MovieSimRepository;
 import com.example.recs.repository.RatingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -13,9 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,6 +48,19 @@ public class RatingServiceImpl implements RatingService{
     }
     public List<Rating> getAllRatings(){
         return ratingRepository.findAll();
+    }
+
+    @Override
+    public List<RatingDto> saveRatings(List<RatingDto> ratingDtos) {
+        List<Rating> ratingEntities = ratingDtos.stream()
+                .map(mapper::fromDto)
+                .collect(Collectors.toList());
+        List<Rating> savedRatings = ratingRepository.saveAll(ratingEntities);
+       Set<Integer> ratedMovieIds = savedRatings.stream().map(r-> r.getId().getMovieId()).collect(Collectors.toSet());
+        for (Integer id :ratedMovieIds){
+            ibcfService.computeSim(id);
+        }
+        return savedRatings.stream().map(mapper::toDto).collect(Collectors.toList());
     }
 
 }

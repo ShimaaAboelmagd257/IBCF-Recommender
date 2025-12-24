@@ -10,14 +10,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Table(name = "movies_similarity")
+@Table(name = "movies_similarity",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"movieX", "movieY"})
+        })
 @Entity
 
 public class MovieSimilarity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long primaryKey;
-    private Long movieX;
-    private Long movieY;
+    private Integer movieX;
+    private Integer movieY;
     private Double sim;
 }

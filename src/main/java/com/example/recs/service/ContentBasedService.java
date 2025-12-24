@@ -1,9 +1,7 @@
 package com.example.recs.service;
 
 import com.example.recs.domain.dto.Movie;
-import com.example.recs.domain.dto.MovieDto;
 import com.example.recs.domain.dto.TmdbMoviesResponse;
-import com.example.recs.mappers.MovieMapperImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class RatingDto {
     private long userId;
-    private long movieId;
+    private Integer movieId;
     private double rating;
 }
